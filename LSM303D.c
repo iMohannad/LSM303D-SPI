@@ -49,26 +49,26 @@ int main(void) {
     while(1) {
 
 
-    	LPC_SPI -> SPDR = 0x58;
-    	ACC_Data[0] = readSPI(0x58);
+    	//LPC_SPI -> SPDR = 0x28;
+    	ACC_Data[0] = readSPI(0x28);
     	printf("ACC_Data[0] > %x\n", ACC_Data[0]);
 
-    	ACC_Data[1] = readSPI(0x59);
+    	ACC_Data[1] = readSPI(0x29);
     	printf("ACC_Data[1] > %x\n", ACC_Data[1]);
 
 
-    	ACC_Data[2] = readSPI(0x5A);
+    	ACC_Data[2] = readSPI(0x2A);
     	printf("ACC_Data[2] > %x\n", ACC_Data[2]);
 
-    	ACC_Data[3] = readSPI(0x5B);
+    	ACC_Data[3] = readSPI(0x2B);
     	printf("ACC_Data[3] > %x\n", ACC_Data[3]);
 
 
-    	ACC_Data[4] = readSPI(0x5C);
+    	ACC_Data[4] = readSPI(0x2C);
     	printf("ACC_Data[4] > %x\n", ACC_Data[4]);
 
 
-    	ACC_Data[0] = readSPI(0x5D);
+    	ACC_Data[0] = readSPI(0x2D);
     	printf("ACC_Data[5] > %x\n", ACC_Data[5]);
 
 
@@ -116,6 +116,8 @@ void SPI_init(){
 
 uint8_t readSPI(uint8_t address){
 	int i=0;
+
+	address |= 1 << 7; //READ bit
 
 	LPC_GPIO0 -> FIOCLR |= 1 << 23;
 	LPC_SPI -> SPDR = address;
