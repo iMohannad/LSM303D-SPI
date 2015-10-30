@@ -52,36 +52,32 @@ int main(void) {
 
 	uint8_t ACC_Data[6];
 
-    // Force the counter to be placed into memory
-    volatile static int i = 0 ;
-    // Enter an infinite loop, just incrementing a counter
-    while(1) {
+	// Force the counter to be placed into memory
+	volatile static int i = 0 ;
+	// Enter an infinite loop, just incrementing a counter
+	while(1) {
+		ACC_Data[0] = SSPReceive(0x28);
+		printf("ACC_Data[0] > %x\n", ACC_Data[0]);
+
+		ACC_Data[1] = SSPReceive(0x29);
+		printf("ACC_Data[1] > %x\n", ACC_Data[1]);
+
+		ACC_Data[2] = SSPReceive(0x2A);
+		printf("ACC_Data[2] > %x\n", ACC_Data[2]);
+
+		ACC_Data[3] = SSPReceive(0x2B);
+		printf("ACC_Data[3] > %x\n", ACC_Data[3]);
 
 
-    	ACC_Data[0] = SSPReceive(0x28);
-    	printf("ACC_Data[0] > %x\n", ACC_Data[0]);
+		ACC_Data[4] = SSPReceive(0x2C);
+		printf("ACC_Data[4] > %x\n", ACC_Data[4]);
 
-    	ACC_Data[1] = SSPReceive(0x29);
-    	printf("ACC_Data[1] > %x\n", ACC_Data[1]);
-
-
-    	ACC_Data[2] = SSPReceive(0x2A);
-    	printf("ACC_Data[2] > %x\n", ACC_Data[2]);
-
-    	ACC_Data[3] = SSPReceive(0x2B);
-    	printf("ACC_Data[3] > %x\n", ACC_Data[3]);
-
-
-    	ACC_Data[4] = SSPReceive(0x2C);
-    	printf("ACC_Data[4] > %x\n", ACC_Data[4]);
-
-
-    	ACC_Data[5] = SSPReceive(0x2D);
-    	printf("ACC_Data[5] > %x\n", ACC_Data[5]);
+		ACC_Data[5] = SSPReceive(0x2D);
+		printf("ACC_Data[5] > %x\n", ACC_Data[5]);
 
 
     }
-    return 0 ;
+    return 0;
 }
 
 
@@ -93,47 +89,47 @@ void SSP_init(){
 	//Power the SPP0 Peripheral
 	LPC_SC -> PCONP |= 1 << 21;
 
-    //Divide the SSP0 clock by 4
-    LPC_SC -> PCLKSEL1 &= ~(0x3 << 10);
+	//Divide the SSP0 clock by 4
+	LPC_SC -> PCLKSEL1 &= ~(0x3 << 10);
 
-    //Configure P0.15 to SPP0 CLK pin
-    LPC_PINCON -> PINSEL0 |= 1 << 31;
+	//Configure P0.15 to SPP0 CLK pin
+	LPC_PINCON -> PINSEL0 |= 1 << 31;
 
-    /* Configure P0.16 to SSEL   */
-    //LPC_PINCON -> PINSEL1 |= 1 << 1;
-    LPC_GPIO0 -> FIODIR |= 1 << 16;
-    LPC_GPIO0 -> FIOSET |= 1 << 16;
+	/* Configure P0.16 to SSEL   */
+	//LPC_PINCON -> PINSEL1 |= 1 << 1;
+	LPC_GPIO0 -> FIODIR |= 1 << 16;
+	LPC_GPIO0 -> FIOSET |= 1 << 16;
 
-    //Configure P0.17 to MISO0
-    LPC_PINCON -> PINSEL1 |= 1 << 3;
+	//Configure P0.17 to MISO0
+	LPC_PINCON -> PINSEL1 |= 1 << 3;
 
-    //Configure P0.18 to MOSI0
-    LPC_PINCON -> PINSEL1 |= 1 << 5;
+	//Configure P0.18 to MOSI0
+	LPC_PINCON -> PINSEL1 |= 1 << 5;
 
 
-    //PULL DOWN
-    LPC_PINCON -> PINMODE0 |= 0x3 << 30;
-    LPC_PINCON -> PINMODE1 |= (0x3) | (0x3 << 2) | (0x3<<4);
+	//PULL DOWN
+	LPC_PINCON -> PINMODE0 |= 0x3 << 30;
+	LPC_PINCON -> PINMODE1 |= (0x3) | (0x3 << 2) | (0x3<<4);
 
-    //SPP0 work on Master Mode and SSP enable
-    LPC_SSP0 -> CR1 |= (1 << 1);
+	//SPP0 work on Master Mode and SSP enable
+	LPC_SSP0 -> CR1 |= (1 << 1);
 
-    /*
-     * SSP0 Control Register 0
-     * Set DSS data to 8-bit	(7 at 3:0)
-     * frame format SPI			(00 at 5:4)
-     * CPOL =0, CPHA=0, and SCR is 15
-     */
-    LPC_SSP0 -> CR0 = 0x0707;
+	/*
+	 * SSP0 Control Register 0
+	 * Set DSS data to 8-bit	(7 at 3:0)
+	 * frame format SPI			(00 at 5:4)
+	 * CPOL =0, CPHA=0, and SCR is 15
+	 */
+	LPC_SSP0 -> CR0 = 0x0707;
 
-    /* SSPCPSR clock prescale register, master mode, minimum divisor is 0x02*/
-    LPC_SSP0 -> CPSR = 0x4;
+	/* SSPCPSR clock prescale register, master mode, minimum divisor is 0x02*/
+	LPC_SSP0 -> CPSR = 0x4;
 
-    int i=0;
-    /* Clear RxFIFO */
-    for(i=0; i<FIFOSIZE; i++){
-    	dummy = LPC_SSP0 -> DR;
-    }
+	int i=0;
+	/* Clear RxFIFO */
+	for(i=0; i<FIFOSIZE; i++){
+		dummy = LPC_SSP0 -> DR;
+	}
 
 
 }
