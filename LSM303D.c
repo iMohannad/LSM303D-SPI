@@ -44,12 +44,13 @@ int main(void) {
 	SSPSend(0x20, 0x87);
 
 	printf("CTRL1 > %x\n", SSPReceive(0x20));
-	printf("CTRL3 > %x\n", SSPReceive(0x23));
+
 
 	//Write on CTRL3 Register (address = 0x23)
 	SSPSend(0x23, 0x40);
+	printf("CTRL3 > %x\n", SSPReceive(0x23));
 
-
+	uint16_t accX, accY, accZ;
 	uint8_t ACC_Data[6];
 
 	// Force the counter to be placed into memory
@@ -57,24 +58,31 @@ int main(void) {
 	// Enter an infinite loop, just incrementing a counter
 	while(1) {
 		ACC_Data[0] = SSPReceive(0x28);
-		printf("ACC_Data[0] > %x\n", ACC_Data[0]);
+		//printf("ACC_Data[0] > %x\n", ACC_Data[0]);
 
 		ACC_Data[1] = SSPReceive(0x29);
-		printf("ACC_Data[1] > %x\n", ACC_Data[1]);
+		//printf("ACC_Data[1] > %x\n", ACC_Data[1]);
 
 		ACC_Data[2] = SSPReceive(0x2A);
-		printf("ACC_Data[2] > %x\n", ACC_Data[2]);
+		//printf("ACC_Data[2] > %x\n", ACC_Data[2]);
 
 		ACC_Data[3] = SSPReceive(0x2B);
-		printf("ACC_Data[3] > %x\n", ACC_Data[3]);
+		//printf("ACC_Data[3] > %x\n", ACC_Data[3]);
 
 
 		ACC_Data[4] = SSPReceive(0x2C);
-		printf("ACC_Data[4] > %x\n", ACC_Data[4]);
+		//printf("ACC_Data[4] > %x\n", ACC_Data[4]);
 
 		ACC_Data[5] = SSPReceive(0x2D);
-		printf("ACC_Data[5] > %x\n", ACC_Data[5]);
+		//printf("ACC_Data[5] > %x\n", ACC_Data[5]);
 
+		accX = (ACC_Data[0] << 8) | ACC_Data[1];
+		accY = (ACC_Data[2] << 8) | ACC_Data[3];
+		accZ = (ACC_Data[4] << 8) | ACC_Data[5];
+
+		printf("accX > %d\n", accX);
+		printf("accY > %d\n", accY);
+		printf("accZ > %d\n", accZ);
 
     }
     return 0;
@@ -89,8 +97,8 @@ void SSP_init(){
 	//Power the SPP0 Peripheral
 	LPC_SC -> PCONP |= 1 << 21;
 
-	//Divide the SSP0 clock by 4
-	LPC_SC -> PCLKSEL1 &= ~(0x3 << 10);
+	//Divide the SSP0 clock by 8
+	LPC_SC -> PCLKSEL1 |= (1 << 10) | (1<<11);
 
 	//Configure P0.15 to SPP0 CLK pin
 	LPC_PINCON -> PINSEL0 |= 1 << 31;
@@ -120,10 +128,10 @@ void SSP_init(){
 	 * frame format SPI			(00 at 5:4)
 	 * CPOL =0, CPHA=0, and SCR is 15
 	 */
-	LPC_SSP0 -> CR0 = 0x0707;
+	LPC_SSP0 -> CR0 |= 0x0707;
 
 	/* SSPCPSR clock prescale register, master mode, minimum divisor is 0x02*/
-	LPC_SSP0 -> CPSR = 0x4;
+	LPC_SSP0 -> CPSR |= 0x5E;
 
 	int i=0;
 	/* Clear RxFIFO */
@@ -137,16 +145,15 @@ void SSP_init(){
 void SSPSend(uint8_t address, uint8_t buf){
 
 	SSP_SSEL(0,0);
+
 	//Send Address of the register to write on
 	//Move only if is not busy and TX FIFO is NOT FULL
 	while(is_busy() & !is_Tx_not_full());
 	LPC_SSP0 -> DR = (address);
-
 	while(is_busy());
-	uint16_t dummy= LPC_SSP0 -> DR;
-	printf("dummy = %x\n", dummy);
-	SSP_SSEL(0,1);
-	SSP_SSEL(0,0);
+	uint8_t dummy= LPC_SSP0 -> DR;
+	//SSP_SSEL(0,1);
+	//SSP_SSEL(0,0);
 
 	//Send Data
 	while(is_busy() & !is_Tx_not_full());
@@ -154,22 +161,24 @@ void SSPSend(uint8_t address, uint8_t buf){
 
 	while(is_busy());
 	dummy = LPC_SSP0 -> DR;
-	printf("dummy2 = %x\n", dummy);
 
 	SSP_SSEL(0,1);
 }
 
 
 uint8_t SSPReceive(uint8_t address){
+	uint8_t dummy, data;
 	address |= 1 << 7; //READ Bit
 	int i=0;
 	SSP_SSEL(0,0);
 
 	LPC_SSP0 -> DR = address;
 	//Read only if it's not busy and the receiver FIFO is not empty
-	//while(!is_Rx_not_empty())	printf("Empty.. LPC_SR > %x\n", LPC_SSP0->SR);
 	while(is_busy() & !is_Rx_not_empty());
-	uint8_t data = LPC_SSP0 -> DR;
+	dummy = LPC_SSP0 -> DR;
+	LPC_SSP0 -> DR = 0xff;
+	while(is_busy() & !is_Rx_not_empty());
+	data = LPC_SSP0->DR;
 
 	SSP_SSEL(0,1);
 
@@ -237,5 +246,5 @@ int is_Rx_not_empty(){
 
 int is_busy(){
 	uint32_t reg = LPC_SSP0 -> SR;
-	return ((reg & 0x10) >> 4);
+	return ((reg & (1<<4)) >> 4);
 }
