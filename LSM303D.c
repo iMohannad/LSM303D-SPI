@@ -37,48 +37,64 @@ int main(void) {
 	int j;
 
 	SSP_init();
+
 	uint8_t sendBuf[FIFOSIZE], recBuf[FIFOSIZE];
 
 	//Write on CTRL1 Register (address = 0x20)
 	//Enable X, Y, Z Accelerometer
-	SSPSend(0x20, 0x87);
+	SSPSend(0x20, 0x27);
 
 	printf("CTRL1 > %x\n", SSPReceive(0x20));
 
 
 	//Write on CTRL3 Register (address = 0x23)
 	SSPSend(0x23, 0x40);
-	printf("CTRL3 > %x\n", SSPReceive(0x23));
+	printf("CTRL4 > %x\n", SSPReceive(0x23));
 
-	uint16_t accX, accY, accZ;
+	SSPSend(0x25, 0x00);
+	printf("CTRL6 > %x\n", SSPReceive(0x25));
+
+	int16_t accX, accY, accZ;
 	uint8_t ACC_Data[6];
 
 	// Force the counter to be placed into memory
 	volatile static int i = 0 ;
 	// Enter an infinite loop, just incrementing a counter
 	while(1) {
+		for(i=0;i<10000000;i++);
 		ACC_Data[0] = SSPReceive(0x28);
-		//printf("ACC_Data[0] > %x\n", ACC_Data[0]);
+		printf("ACC_Data[0] > %x\n", ACC_Data[0]);
 
 		ACC_Data[1] = SSPReceive(0x29);
-		//printf("ACC_Data[1] > %x\n", ACC_Data[1]);
+		printf("ACC_Data[1] > %x\n", ACC_Data[1]);
 
 		ACC_Data[2] = SSPReceive(0x2A);
-		//printf("ACC_Data[2] > %x\n", ACC_Data[2]);
+		printf("ACC_Data[2] > %x\n", ACC_Data[2]);
 
 		ACC_Data[3] = SSPReceive(0x2B);
-		//printf("ACC_Data[3] > %x\n", ACC_Data[3]);
+		printf("ACC_Data[3] > %x\n", ACC_Data[3]);
 
 
 		ACC_Data[4] = SSPReceive(0x2C);
-		//printf("ACC_Data[4] > %x\n", ACC_Data[4]);
+		printf("ACC_Data[4] > %x\n", ACC_Data[4]);
 
 		ACC_Data[5] = SSPReceive(0x2D);
-		//printf("ACC_Data[5] > %x\n", ACC_Data[5]);
+		printf("ACC_Data[5] > %x\n", ACC_Data[5]);
 
-		accX = (ACC_Data[0] << 8) | ACC_Data[1];
-		accY = (ACC_Data[2] << 8) | ACC_Data[3];
-		accZ = (ACC_Data[4] << 8) | ACC_Data[5];
+//		ACC_Data[0] = ~ACC_Data[0];
+//		ACC_Data[1] = ~ACC_Data[1];
+//		ACC_Data[2] = ~ACC_Data[2];
+//		ACC_Data[3] = ~ACC_Data[3];
+//		ACC_Data[4] = ~ACC_Data[4];
+//		ACC_Data[5] = ~ACC_Data[5];
+
+//		for(j=0;j<5;j++){
+//			printf("ACC_Data[%d] = %x\n", j, ACC_Data[j]);
+//		}
+
+		accX = (int)(ACC_Data[1] << 8) | ACC_Data[0];
+		accY = (int)(ACC_Data[3] << 8) | ACC_Data[2];
+		accZ = (int)(ACC_Data[5] << 8) | ACC_Data[4];
 
 		printf("accX > %d\n", accX);
 		printf("accY > %d\n", accY);
