@@ -1,10 +1,10 @@
 /*
 ===============================================================================
  Name        : LSM303D.c
- Author      : $(author)
- Version     :
- Copyright   : $(copyright)
- Description : main definition
+ Author      : Mohannad S. Mostafa
+ Version     : 1.0.0
+ Description : Setting up SPI connection between LPC1769 and LSM303D and send
+               data collected from the sensor to LPC1769.
 ===============================================================================
 */
 
@@ -33,9 +33,8 @@ int is_busy();
 
 
 int main(void) {
-
-	int j;
-
+	
+	// Initialize SSP module on the microcontroller
 	SSP_init();
 
 	uint8_t sendBuf[FIFOSIZE], recBuf[FIFOSIZE];
@@ -81,21 +80,13 @@ int main(void) {
 		ACC_Data[5] = SSPReceive(0x2D);
 		printf("ACC_Data[5] > %x\n", ACC_Data[5]);
 
-//		ACC_Data[0] = ~ACC_Data[0];
-//		ACC_Data[1] = ~ACC_Data[1];
-//		ACC_Data[2] = ~ACC_Data[2];
-//		ACC_Data[3] = ~ACC_Data[3];
-//		ACC_Data[4] = ~ACC_Data[4];
-//		ACC_Data[5] = ~ACC_Data[5];
-
-//		for(j=0;j<5;j++){
-//			printf("ACC_Data[%d] = %x\n", j, ACC_Data[j]);
-//		}
-
+		// The data for x, y, and z access are 16 bytes each, so we need to concatenate 
+		// each 2 bytes to get the correct data
 		accX = (int)(ACC_Data[1] << 8) | ACC_Data[0];
 		accY = (int)(ACC_Data[3] << 8) | ACC_Data[2];
 		accZ = (int)(ACC_Data[5] << 8) | ACC_Data[4];
 
+		// Printing the data
 		printf("accX > %d\n", accX);
 		printf("accY > %d\n", accY);
 		printf("accZ > %d\n", accZ);
@@ -107,35 +98,36 @@ int main(void) {
 
 void SSP_init(){
 
+	// This variable is used to clear RxFIFO
 	uint8_t dummy;
 
 	printf("SSP Init\n");
-	//Power the SPP0 Peripheral
+
+	// Power on the SPP0 Peripheral
 	LPC_SC -> PCONP |= 1 << 21;
 
-	//Divide the SSP0 clock by 8
+	// Divide the SSP0 clock by 8
 	LPC_SC -> PCLKSEL1 |= (1 << 10) | (1<<11);
 
-	//Configure P0.15 to SPP0 CLK pin
+	// Configure P0.15 to SPP0 CLK pin
 	LPC_PINCON -> PINSEL0 |= 1 << 31;
 
-	/* Configure P0.16 to SSEL   */
-	//LPC_PINCON -> PINSEL1 |= 1 << 1;
+	// Configure P0.16 to SSEL
 	LPC_GPIO0 -> FIODIR |= 1 << 16;
 	LPC_GPIO0 -> FIOSET |= 1 << 16;
 
-	//Configure P0.17 to MISO0
+	// Configure P0.17 to MISO0
 	LPC_PINCON -> PINSEL1 |= 1 << 3;
 
-	//Configure P0.18 to MOSI0
+	// Configure P0.18 to MOSI0
 	LPC_PINCON -> PINSEL1 |= 1 << 5;
 
 
-	//PULL DOWN
+	// PULL DOWN
 	LPC_PINCON -> PINMODE0 |= 0x3 << 30;
 	LPC_PINCON -> PINMODE1 |= (0x3) | (0x3 << 2) | (0x3<<4);
 
-	//SPP0 work on Master Mode and SSP enable
+	// SPP0 work on Master Mode and SSP enable
 	LPC_SSP0 -> CR1 |= (1 << 1);
 
 	/*
@@ -154,24 +146,22 @@ void SSP_init(){
 	for(i=0; i<FIFOSIZE; i++){
 		dummy = LPC_SSP0 -> DR;
 	}
-
-
 }
+
 
 void SSPSend(uint8_t address, uint8_t buf){
 
 	SSP_SSEL(0,0);
 
-	//Send Address of the register to write on
-	//Move only if is not busy and TX FIFO is NOT FULL
+	/* Send Address of the register to write on
+	   Move only if is not busy and TX FIFO is NOT FULL
+	*/
 	while(is_busy() & !is_Tx_not_full());
 	LPC_SSP0 -> DR = (address);
 	while(is_busy());
-	uint8_t dummy= LPC_SSP0 -> DR;
-	//SSP_SSEL(0,1);
-	//SSP_SSEL(0,0);
+	uint8_t dummy = LPC_SSP0 -> DR;
 
-	//Send Data
+	// Send Data
 	while(is_busy() & !is_Tx_not_full());
 	LPC_SSP0 -> DR = buf;
 
@@ -189,7 +179,7 @@ uint8_t SSPReceive(uint8_t address){
 	SSP_SSEL(0,0);
 
 	LPC_SSP0 -> DR = address;
-	//Read only if it's not busy and the receiver FIFO is not empty
+	// Read only if it's not busy and the receiver FIFO is not empty
 	while(is_busy() & !is_Rx_not_empty());
 	dummy = LPC_SSP0 -> DR;
 	LPC_SSP0 -> DR = 0xff;
@@ -199,8 +189,8 @@ uint8_t SSPReceive(uint8_t address){
 	SSP_SSEL(0,1);
 
 	return data;
-
 }
+
 
 /* Description : Manual set for SSP Chip Select (CS) */
 void SSP_SSEL(int port, int toggle){
@@ -236,7 +226,8 @@ int is_Tx_not_full(){
 	return ((reg & 0x2) >> 1);
 }
 
-/* returns 1 if Transmitter FIFO empty
+/* 
+ * returns 1 if Transmitter FIFO empty
  * returns 0 if Transmitter FIFO is not empty
  */
 int is_Tx_empty(){
@@ -244,7 +235,8 @@ int is_Tx_empty(){
 	return (reg & 0x1);
 }
 
-/* returns 1 if Receiver FIFO FULL
+/* 
+ * returns 1 if Receiver FIFO FULL
  * returns 0 if Receiver FIFO is NOT FULL
  */
 int is_Rx_full(){
@@ -252,13 +244,15 @@ int is_Rx_full(){
 	return ((reg & 0x4) >> 2);
 }
 
-/* returns 1 if Receiver FIFO Not empty
+/*
+ * returns 1 if Receiver FIFO Not empty
  * returns 0 if Receiver FIFO is empty
  */
 int is_Rx_not_empty(){
 	uint32_t reg = LPC_SSP0 -> SR;
 	return (reg & (1 << 2)) >> 2;
 }
+
 
 int is_busy(){
 	uint32_t reg = LPC_SSP0 -> SR;
